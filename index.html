@@ -3,132 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Produtos - Supabase</title>
-    <!-- Incluindo o SDK do Supabase via CDN -->
+    <title>Vitrine de Produtos</title>
+    <!-- SDK oficial do Supabase via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f9f9f9;
-            color: #333;
-            max-width: 800px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            max-width: 900px;
             margin: 40px auto;
             padding: 0 20px;
         }
         h1 {
-            color: #1c1c1e;
-            border-bottom: 2px solid #eaeaea;
-            padding-bottom: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
             background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 12px;
             overflow: hidden;
+            margin-top: 20px;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 16px 20px;
             text-align: left;
-            border-bottom: 1px solid #eaeaea;
         }
         th {
-            background-color: #f4f4f5;
+            background-color: #f5f5f7;
             font-weight: 600;
+            border-bottom: 2px solid #e8e8ed;
+            color: #86868b;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        td {
+            border-bottom: 1px solid #e8e8ed;
+            font-size: 15px;
         }
         tr:last-child td {
             border-bottom: none;
         }
-        .status {
-            font-weight: bold;
-            color: #666;
+        tr:hover td {
+            background-color: #fafafa;
         }
-        .loading { color: #007aff; }
-        .error { color: #ff3b30; }
+        .preco {
+            font-weight: 600;
+            color: #0071e3;
+        }
+        /* Estados da tela */
+        .status-container {
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            font-size: 16px;
+        }
+        .loading { color: #0071e3; font-weight: 500; }
+        .error { color: #ff3b30; border: 1px solid #ffb3b0; background: #fff2f1; }
+        .empty { color: #86868b; }
     </style>
 </head>
 <body>
 
-    <h1>Produtos Cadastrados</h1>
-    <div id="status" class="status loading">Carregando produtos...</div>
+    <h1>Nossos Produtos</h1>
 
+    <!-- Área de status que muda conforme o banco responde -->
+    <div id="status-tela" class="status-container loading">
+        Conectando ao banco de dados e buscando produtos...
+    </div>
+
+    <!-- Tabela formatada especificamente para seus campos -->
     <table id="tabela-produtos" style="display: none;">
         <thead>
-            <tr id="cabecalho">
-                <!-- Os cabeçalhos serão gerados automaticamente baseados nos dados -->
+            <tr>
+                <th>Nome do Produto</th>
+                <th>Descrição</th>
+                <th>Preço</th>
             </tr>
         </thead>
         <tbody id="corpo-tabela">
-            <!-- As linhas dos produtos entrarão aqui -->
+            <!-- Os dados vão entrar aqui via JS -->
         </tbody>
     </table>
 
     <script>
-        // Suas credenciais do Supabase (Atenção: usei a URL base do seu projeto)
+        // Configuração das credenciais (limpas sem a rota de REST no final)
         const SUPABASE_URL = 'https://yzlalxeoypydhzyjdtaa.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_qn5dcZzuXxVsmsRGNUIAew_zjwSTOW-';
 
-        // Inicializa o cliente do Supabase
+        // Inicializando a conexão externa
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function buscarProdutos() {
-            const statusDiv = document.getElementById('status');
+        async function carregarDados() {
+            const statusTela = document.getElementById('status-tela');
             const tabela = document.getElementById('tabela-produtos');
-            const cabecalho = document.getElementById('cabecalho');
             const corpoTabela = document.getElementById('corpo-tabela');
 
             try {
-                // Faz a requisição para a tabela 'produtos'
+                // Busca exatamente as colunas que você mencionou
                 const { data: produtos, error } = await supabase
                     .from('produtos')
-                    .select('*');
+                    .select('nome, preco, descricao');
 
+                // Se o Supabase retornar um erro, ele cai aqui
                 if (error) throw error;
 
+                // Se a tabela estiver vazia
                 if (!produtos || produtos.length === 0) {
-                    statusDiv.textContent = 'Nenhum produto encontrado.';
-                    statusDiv.className = 'status';
+                    statusTela.textContent = "A conexão funcionou, mas a tabela 'produtos' está vazia no seu banco.";
+                    statusTela.className = "status-container empty";
                     return;
                 }
 
-                // Esconde a mensagem de carregando e mostra a tabela
-                statusDiv.style.display = 'none';
+                // Limpa o indicador de carregando e mostra a tabela
+                statusTela.style.display = 'none';
                 tabela.style.display = 'table';
 
-                // Descobre as colunas existentes no banco para criar o cabeçalho dinamicamente
-                const colunas = Object.keys(produtos[0]);
-                colunas.forEach(coluna => {
-                    const th = document.createElement('th');
-                    th.textContent = coluna.toUpperCase();
-                    cabecalho.appendChild(th);
-                });
-
-                // Preenche as linhas da tabela com os dados dos produtos
-                produtos.forEach(produto => {
+                // Renderiza linha por linha
+                produtos.forEach(item => {
                     const tr = document.createElement('tr');
-                    
-                    colunas.forEach(coluna => {
-                        const td = document.createElement('td');
-                        // Se o valor for um objeto ou array, transforma em string
-                        const valor = produto[coluna];
-                        td.textContent = typeof valor === 'object' && valor !== null ? JSON.stringify(valor) : valor;
-                        tr.appendChild(td);
-                    });
 
+                    // Formata o preço se ele for um número válido
+                    const precoFormatado = typeof item.preco === 'number' 
+                        ? `R$ ${item.preco.toFixed(2).replace('.', ',')}` 
+                        : (item.preco || 'N/A');
+
+                    tr.innerHTML = `
+                        <td><strong>${item.nome || 'Sem nome'}</strong></td>
+                        <td>${item.descricao || '<i>Sem descrição</i>'}</td>
+                        <td class="preco">${precoFormatado}</td>
+                    `;
+                    
                     corpoTabela.appendChild(tr);
                 });
 
             } catch (err) {
-                console.error('Erro ao buscar dados:', err);
-                statusDiv.textContent = `Erro ao carregar produtos: ${err.message}`;
-                statusDiv.className = 'status error';
+                // Captura falhas de conexão, URL errada, chaves inválidas ou bloqueio de RLS
+                console.error("Erro capturado:", err);
+                statusTela.innerHTML = `
+                    <strong>Não foi possível carregar os dados.</strong><br><br>
+                    <small style="color: #555;">Detalhes do erro: ${err.message || JSON.stringify(err)}</small>
+                `;
+                statusTela.className = "status-container error";
             }
         }
 
-        // Executa a função assim que a página carrega
-        buscarProdutos();
+        // Executa o script
+        carregarDados();
     </script>
 </body>
 </html>
