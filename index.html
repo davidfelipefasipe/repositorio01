@@ -1,89 +1,571 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cards Dinâmicos - Supabase</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produtos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #161616;
+      --card:     #1c1c1c;
+      --border:   #2a2a2a;
+      --accent:   #e8c97a;
+      --accent2:  #c0392b;
+      --text:     #f0ece4;
+      --muted:    #7a7570;
+      --radius:   16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .03;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      padding: 80px 40px 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 50%; transform: translateX(-50%);
+      width: 80px; height: 2px;
+      background: var(--accent);
+    }
+    .header-label {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: .95;
+      letter-spacing: -2px;
+    }
+    header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    header p {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 300;
+    }
+
+    /* ── CONFIG BANNER ── */
+    #config-banner {
+      background: #1a1200;
+      border: 1px solid #3d2e00;
+      border-radius: var(--radius);
+      margin: 32px auto;
+      max-width: 680px;
+      padding: 24px 28px;
+    }
+    #config-banner h3 {
+      color: var(--accent);
+      font-size: .85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .config-row {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .config-row input {
+      flex: 1; min-width: 200px;
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .85rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .config-row input:focus { border-color: var(--accent); }
+    .config-row input::placeholder { color: var(--muted); }
+    .btn-connect {
+      padding: 10px 28px;
+      background: var(--accent);
+      color: #0d0d0d;
+      border: none; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500; font-size: .9rem;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      white-space: nowrap;
+    }
+    .btn-connect:hover { opacity: .85; transform: translateY(-1px); }
+
+    /* ── MAIN ── */
+    main {
+      position: relative; z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 60px 40px 100px;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 48px; flex-wrap: wrap; gap: 16px;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    #count {
+      font-size: .82rem; color: var(--muted); letter-spacing: 1px;
+    }
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .88rem;
+      padding: 9px 18px 9px 40px;
+      width: 240px;
+      outline: none;
+      transition: border-color .2s, width .3s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); width: 300px; }
+    .search-wrap svg {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none;
+    }
+
+    /* ── GRID ── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 28px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      cursor: pointer;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .3s;
+      animation: fadeUp .5s ease both;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 20px 60px rgba(232,201,122,.08);
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(24px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .card-img {
+      width: 100%; aspect-ratio: 4/3;
+      object-fit: cover;
+      background: var(--surface);
+      display: block;
+      transition: filter .3s;
+    }
+    .card:hover .card-img { filter: brightness(1.08); }
+
+    .card-img-placeholder {
+      width: 100%; aspect-ratio: 4/3;
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 2.5rem;
+    }
+
+    .card-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+
+    .card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .card-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.65;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      margin-top: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-price {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+    .card-btn {
+      padding: 7px 18px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .78rem;
+      letter-spacing: .5px;
+      cursor: pointer;
+      transition: background .2s, border-color .2s, color .2s;
+    }
+    .card-btn:hover { background: var(--accent); border-color: var(--accent); color: #0d0d0d; }
+
+    /* ── STATES ── */
+    .state-msg {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .state-msg .icon { font-size: 3rem; margin-bottom: 16px; }
+    .state-msg h2 { font-family: 'Playfair Display', serif; color: var(--text); margin-bottom: 8px; }
+    .state-msg p  { font-size: .88rem; }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      max-width: 560px; width: 100%;
+      overflow: hidden;
+      transform: scale(.95);
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    .overlay.open .modal { transform: scale(1); }
+    .modal img { width: 100%; max-height: 280px; object-fit: cover; display: block; }
+    .modal-body { padding: 32px; }
+    .modal-body h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem; margin-bottom: 12px;
+    }
+    .modal-body p { color: var(--muted); line-height: 1.7; font-size: .93rem; margin-bottom: 24px; }
+    .modal-price { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--accent); font-weight: 900; }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 36px; height: 36px;
+      background: rgba(0,0,0,.5);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .overlay { position: fixed; }
+    .modal-wrap { position: relative; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: #1e1e1e; border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 20px;
+      font-size: .85rem; color: var(--text);
+      transform: translateY(20px); opacity: 0;
+      transition: all .3s; z-index: 200;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.err { border-color: var(--accent2); }
+
+    @media (max-width: 600px) {
+      header { padding: 50px 20px 40px; }
+      main { padding: 40px 20px 60px; }
+      .search-wrap input { width: 100%; }
+      .search-wrap input:focus { width: 100%; }
+      #grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 py-8">
+<body>
 
-  <div class="max-w-7xl mx-auto px-4">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">
-      Produtos / Serviços
-    </h1>
+<header>
+  <p class="header-label">Catálogo</p>
+  <h1>Nossa <em>Vitrine</em></h1>
+  <p>Conectado ao Supabase · Dados em tempo real</p>
+</header>
 
-    <!-- Container dos cards -->
-    <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <!-- Cards serão inseridos aqui via JavaScript -->
+<!-- Config banner -->
+<div id="config-banner" style="display:none;">
+  <h3>⚙ Configurar Conexão Supabase</h3>
+  <div class="config-row">
+    <input id="inp-url"  type="text" placeholder="URL do projeto  (https://xxxx.supabase.co)" />
+    <input id="inp-key"  type="text" placeholder="Anon Key  (eyJhbGci…)" />
+  </div>
+  <div class="config-row">
+    <button class="btn-connect" onclick="conectar()">Conectar &amp; Carregar</button>
+  </div>
+</div>
+
+<main>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span id="count"></span>
+    </div>
+    <div class="search-wrap">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="Buscar produto…" oninput="filtrar()" />
     </div>
   </div>
 
-  <script type="module">
-    // ==================== CONFIGURAÇÃO SUPABASE ====================
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  <div id="grid">
+    <div class="state-msg">
+      <div class="icon">🔌</div>
+      <h2>Configure a conexão</h2>
+      <p>Preencha a URL e a chave do Supabase acima para carregar os produtos.</p>
+    </div>
+  </div>
+</main>
 
-    const SUPABASE_URL = 'https://yzlalxeoypydhzyjdtaa.supabase.co/rest/v1/';           // ← Troque
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGFseGVveXB5ZGh6eWpkdGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTE5MTQsImV4cCI6MjA5NDgyNzkxNH0.JC_1dztS662ZJSUNF1tAMem2hdizUzoDqwlOqIpDs1s';               // ← Troque
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="fecharModal(event)">
+  <div class="modal-wrap">
+    <button class="modal-close" onclick="fecharModal()">✕</button>
+    <div class="modal" id="modal">
+      <img id="m-img" src="" alt="" />
+      <div class="modal-body">
+        <h2 id="m-nome"></h2>
+        <p  id="m-desc"></p>
+        <div class="modal-price" id="m-preco"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<!-- Toast -->
+<div id="toast"></div>
 
-    // ==================== BUSCAR DADOS ====================
-    async function carregarCards() {
-      const container = document.getElementById('cards-container');
-      container.innerHTML = '<p class="col-span-3 text-center">Carregando...</p>';
+<script type="module">
+  /* ─────────────────────────────────────────
+     CONFIGURAÇÃO
+     ─────────────────────────────────────────
+     Opção 1 – edite as constantes abaixo:   */
+  const SUPABASE_URL = '';   // ex: 'https://abcdef.supabase.co'
+  const SUPABASE_KEY = '';   // anon/public key
 
-      try {
-        const { data, error } = await supabase
-          .from('produtos')           // Nome da sua tabela
-          .select('*')
-          .order('created_at', { ascending: false });
+  /* ─────────────────────────────────────────
+     Não precisa mexer a partir daqui
+     ───────────────────────────────────────── */
 
-        if (error) throw error;
+  let produtos = [];
+  let supabaseClient = null;
 
-        container.innerHTML = ''; // Limpa loading
+  // Importa o SDK do Supabase via CDN
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 
-        data.forEach(item => {
-          const cardHTML = `
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
-              <img src="${item.imagem || 'https://via.placeholder.com/400x200'}" 
-                   class="w-full h-48 object-cover" alt="${item.nome}">
-              
-              <div class="p-6">
-                <h3 class="text-xl font-semibold mb-2">${item.nome}</h3>
-                <p class="text-gray-600 text-sm line-clamp-3 mb-4">
-                  ${item.descricao || 'Sem descrição'}
-                </p>
-                
-                <div class="flex justify-between items-center">
-                  <span class="text-2xl font-bold text-green-600">
-                    R$ ${parseFloat(item.preco).toFixed(2)}
-                  </span>
-                  <button onclick="adicionarAoCarrinho(${item.id})"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl transition">
-                    <i class="fas fa-cart-plus"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-          container.innerHTML += cardHTML;
-        });
+  // Expor funções ao escopo global para uso inline
+  window.conectar   = conectar;
+  window.filtrar    = filtrar;
+  window.abrirModal = abrirModal;
+  window.fecharModal= fecharModal;
 
-      } catch (err) {
-        console.error(err);
-        container.innerHTML = `<p class="text-red-500 text-center col-span-3">Erro ao carregar dados: ${err.message}</p>`;
-      }
+  // ── Init ──
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    inicializar(SUPABASE_URL, SUPABASE_KEY);
+  } else {
+    document.getElementById('config-banner').style.display = 'block';
+  }
+
+  // ── Conectar via banner ──
+  function conectar() {
+    const url = document.getElementById('inp-url').value.trim();
+    const key = document.getElementById('inp-key').value.trim();
+    if (!url || !key) { toast('Preencha URL e Key.', true); return; }
+    inicializar(url, key);
+  }
+
+  // ── Inicializar cliente e buscar dados ──
+  async function inicializar(url, key) {
+    try {
+      supabaseClient = createClient(url, key);
+      document.getElementById('config-banner').style.display = 'none';
+      await carregarProdutos();
+    } catch(e) {
+      toast('Erro ao criar cliente: ' + e.message, true);
+    }
+  }
+
+  // ── Buscar produtos ──
+  async function carregarProdutos() {
+    renderLoading();
+    const { data, error } = await supabaseClient
+      .from('produtos')
+      .select('nome, descricao, preco, imagem')
+      .order('nome');
+
+    if (error) {
+      renderErro(error.message);
+      toast('Erro: ' + error.message, true);
+      return;
     }
 
-    // Função exemplo
-    window.adicionarAoCarrinho = function(id) {
-      alert(`Produto ${id} adicionado ao carrinho!`);
-    };
+    produtos = data || [];
+    renderCards(produtos);
+    atualizarContador(produtos.length);
+    toast(`${produtos.length} produto(s) carregado(s) ✓`);
+  }
 
-    // Carrega os cards ao abrir a página
-    carregarCards();
-  </script>
+  // ── Filtro de busca ──
+  function filtrar() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const filtrados = produtos.filter(p =>
+      p.nome?.toLowerCase().includes(q) ||
+      p.descricao?.toLowerCase().includes(q)
+    );
+    renderCards(filtrados);
+    atualizarContador(filtrados.length, q ? produtos.length : null);
+  }
+
+  // ── Renderizar cards ──
+  function renderCards(lista) {
+    const grid = document.getElementById('grid');
+    if (!lista.length) {
+      grid.innerHTML = `<div class="state-msg">
+        <div class="icon">🔍</div>
+        <h2>Nenhum produto encontrado</h2>
+        <p>Tente outro termo de busca.</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = lista.map((p, i) => `
+      <div class="card" style="animation-delay:${i * 60}ms" onclick="abrirModal(${produtos.indexOf(p)})">
+        ${p.imagem
+          ? `<img class="card-img" src="${p.imagem}" alt="${esc(p.nome)}" loading="lazy" onerror="this.outerHTML='<div class=card-img-placeholder>📦</div>'" />`
+          : `<div class="card-img-placeholder">📦</div>`
+        }
+        <div class="card-body">
+          <div class="card-name">${esc(p.nome || '—')}</div>
+          <div class="card-desc">${esc(p.descricao || 'Sem descrição.')}</div>
+          <div class="card-footer">
+            <div class="card-price">${formatarPreco(p.preco)}</div>
+            <button class="card-btn">Ver detalhes</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Modal ──
+  function abrirModal(idx) {
+    const p = produtos[idx];
+    if (!p) return;
+    const mImg = document.getElementById('m-img');
+    if (p.imagem) {
+      mImg.src = p.imagem;
+      mImg.style.display = 'block';
+    } else {
+      mImg.style.display = 'none';
+    }
+    document.getElementById('m-nome').textContent  = p.nome || '—';
+    document.getElementById('m-desc').textContent  = p.descricao || 'Sem descrição.';
+    document.getElementById('m-preco').textContent = formatarPreco(p.preco);
+    document.getElementById('overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function fecharModal(e) {
+    if (e && e.target !== document.getElementById('overlay') && !e.target.classList.contains('modal-close')) return;
+    document.getElementById('overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // ── States ──
+  function renderLoading() {
+    document.getElementById('grid').innerHTML = `
+      <div class="state-msg">
+        <div class="spinner"></div>
+        <p>Carregando produtos…</p>
+      </div>`;
+  }
+  function renderErro(msg) {
+    document.getElementById('grid').innerHTML = `
+      <div class="state-msg">
+        <div class="icon">⚠️</div>
+        <h2>Erro ao carregar</h2>
+        <p>${esc(msg)}</p>
+      </div>`;
+  }
+
+  // ── Helpers ──
+  function atualizarContador(total, de) {
+    document.getElementById('count').textContent = de
+      ? `${total} de ${de} produtos`
+      : `${total} produto${total !== 1 ? 's' : ''}`;
+  }
+  function formatarPreco(v) {
+    if (v == null) return '—';
+    return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function toast(msg, err = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show' + (err ? ' err' : '');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.className = '', 3500);
+  }
+
+  // Fechar modal com Esc
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') fecharModal({ target: document.getElementById('overlay') });
+  });
+</script>
 </body>
 </html>
