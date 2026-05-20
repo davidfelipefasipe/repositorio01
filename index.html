@@ -1,52 +1,89 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Página Moderna</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cards Dinâmicos - Supabase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
-<body>
-    <header>
-        <nav>
-            <h2>Logo</h2>
-            <ul>
-                <li><a href="#">Início</a></li>
-                <li><a href="#">Sobre</a></li>
-                <li><a href="#">Serviços</a></li>
-                <li><a href="#">Contato</a></li>
-            </ul>
-            <button id="theme-toggle">🌙</button>
-        </nav>
-    </header>
+<body class="bg-gray-100 py-8">
 
-    <main>
-        <section class="hero">
-            <h1>Bem-vindo ao Exemplo</h1>
-            <p>Uma página simples, bonita e interativa com HTML, CSS e JavaScript.</p>
-            <button id="action-btn">Clique para Mágica ✨</button>
-        </section>
+  <div class="max-w-7xl mx-auto px-4">
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">
+      Produtos / Serviços
+    </h1>
 
-        <section class="cards">
-            <div class="card">
-                <h3>Card 1</h3>
-                <p>Exemplo de conteúdo interativo.</p>
+    <!-- Container dos cards -->
+    <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Cards serão inseridos aqui via JavaScript -->
+    </div>
+  </div>
+
+  <script type="module">
+    // ==================== CONFIGURAÇÃO SUPABASE ====================
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://yzlalxeoypydhzyjdtaa.supabase.co/rest/v1/';           // ← Troque
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6bGFseGVveXB5ZGh6eWpkdGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTE5MTQsImV4cCI6MjA5NDgyNzkxNH0.JC_1dztS662ZJSUNF1tAMem2hdizUzoDqwlOqIpDs1s';               // ← Troque
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ==================== BUSCAR DADOS ====================
+    async function carregarCards() {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '<p class="col-span-3 text-center">Carregando...</p>';
+
+      try {
+        const { data, error } = await supabase
+          .from('produtos')           // Nome da sua tabela
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        container.innerHTML = ''; // Limpa loading
+
+        data.forEach(item => {
+          const cardHTML = `
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
+              <img src="${item.imagem || 'https://via.placeholder.com/400x200'}" 
+                   class="w-full h-48 object-cover" alt="${item.nome}">
+              
+              <div class="p-6">
+                <h3 class="text-xl font-semibold mb-2">${item.nome}</h3>
+                <p class="text-gray-600 text-sm line-clamp-3 mb-4">
+                  ${item.descricao || 'Sem descrição'}
+                </p>
+                
+                <div class="flex justify-between items-center">
+                  <span class="text-2xl font-bold text-green-600">
+                    R$ ${parseFloat(item.preco).toFixed(2)}
+                  </span>
+                  <button onclick="adicionarAoCarrinho(${item.id})"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl transition">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="card">
-                <h3>Card 2</h3>
-                <p>Design responsivo com Flexbox.</p>
-            </div>
-            <div class="card">
-                <h3>Card 3</h3>
-                <p>Dark mode incluído!</p>
-            </div>
-        </section>
-    </main>
+          `;
+          container.innerHTML += cardHTML;
+        });
 
-    <footer>
-        <p>Feito com ❤️ por Grok • 2026</p>
-    </footer>
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="text-red-500 text-center col-span-3">Erro ao carregar dados: ${err.message}</p>`;
+      }
+    }
 
-    <script src="script.js"></script>
+    // Função exemplo
+    window.adicionarAoCarrinho = function(id) {
+      alert(`Produto ${id} adicionado ao carrinho!`);
+    };
+
+    // Carrega os cards ao abrir a página
+    carregarCards();
+  </script>
 </body>
 </html>
